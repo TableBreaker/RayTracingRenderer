@@ -16,7 +16,9 @@ struct Vec
 	Vec operator*(double b) const { return Vec(x*b, y*b, z*b); }
 	Vec mult(const Vec &b) const { return Vec(x*b.x, y*b.y, z*b.z); }
 	Vec& norm() { return *this = *this * (1 / sqrt(x*x + y * y + z * z)); }
-	double dot(const Vec &b) const { return x * b.x + y * b.y + z * b.z; } // cross:
+	double dot(const Vec &b) const { return x * b.x + y * b.y + z * b.z; }
+
+	// cross:
 	Vec operator%(const Vec &b) { return Vec(y*b.z - z * b.y, z*b.x - x * b.z, x*b.y - y * b.x); }
 };
 
@@ -65,6 +67,7 @@ inline double clamp(double x) { return x < 0 ? 0 : x>1 ? 1 : x; }
 
 inline int toInt(double x) { return int(pow(clamp(x), 1 / 2.2) * 255 + .5); }
 
+// find hit index and distance if hit
 inline bool intersect(const Ray &r, double &t, int &id)
 {
 	double n = sizeof(spheres) / sizeof(Sphere), d, inf = t = 1e20;
@@ -97,10 +100,14 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
 	}
 
 	if (depth > 100) return obj.e; // MILO
-	if (obj.refl == DIFF)
-	{                  // Ideal DIFFUSE reflection
-		double r1 = 2 * M_PI * erand48(Xi), r2 = erand48(Xi), r2s = sqrt(r2);
-		Vec w = nl, u = ((fabs(w.x) > .1 ? Vec(0, 1) : Vec(1)) % w).norm(), v = w % u;
+	if (obj.refl == DIFF)  // Ideal DIFFUSE reflection
+	{                 
+		double r1 = 2 * M_PI * erand48(Xi);
+		double r2 = erand48(Xi);
+		double r2s = sqrt(r2);
+		Vec w = nl;
+		Vec u = ((fabs(w.x) > .1 ? Vec(0, 1) : Vec(1)) % w).norm();
+		Vec v = w % u;
 		Vec d = (u*cos(r1)*r2s + v * sin(r1)*r2s + w * sqrt(1 - r2)).norm();
 		return obj.e + f.mult(radiance(Ray(x, d), depth, Xi));
 	}
