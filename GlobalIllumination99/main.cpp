@@ -130,7 +130,8 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
 int main(int argc, char *argv[])
 {
 	clock_t start = clock(); // MILO
-	int w = 256, h = 256, samps = argc == 2 ? atoi(argv[1]) / 4 : 25; // # samples
+	int w = 256, h = 256; 
+	int samps = argc == 2 ? atoi(argv[1]) / 4 : 2; // # samples, spp = samples * 4 (4 subpixel per pixel)
 	Ray cam(Vec(50, 52, 295.6), Vec(0, -0.042612, -1).norm()); // cam pos, dir
 	Vec cx = Vec(w*.5135 / h), cy = (cx%cam.d).norm()*.5135, r, *c = new Vec[w*h];
 #pragma omp parallel for schedule(dynamic, 1) private(r)       // OpenMP
@@ -144,6 +145,7 @@ int main(int argc, char *argv[])
 				{        // 2x2 subpixel cols
 					for (int s = 0; s < samps; s++)
 					{
+						// tent filter
 						double r1 = 2 * erand48(Xi), dx = r1 < 1 ? sqrt(r1) - 1 : 1 - sqrt(2 - r1);
 						double r2 = 2 * erand48(Xi), dy = r2 < 1 ? sqrt(r2) - 1 : 1 - sqrt(2 - r2);
 						Vec d = cx * (((sx + .5 + dx) / 2 + x) / w - .5) +
@@ -158,4 +160,5 @@ int main(int argc, char *argv[])
 	fprintf(f, "P3\n%d %d\n%d\n", w, h, 255);
 	for (int i = 0; i < w*h; i++)
 		fprintf(f, "%d %d %d ", toInt(c[i].x), toInt(c[i].y), toInt(c[i].z));
+	getchar();
 }
