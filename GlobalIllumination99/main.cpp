@@ -5,6 +5,8 @@
 #include "erand48.inc"	// MILO
 #include <iostream>
 #define M_PI 3.141592653589793238462643	// MILO
+#define M_SAMPLES 4
+#define USE_TENT_FILTER
 
 struct Vec
 {        // Usage: time ./smallpt 5000 && xv image.ppm
@@ -131,39 +133,61 @@ int main(int argc, char *argv[])
 {
 	clock_t start = clock(); // MILO
 	int w = 256, h = 256; 
-	int samps = argc == 2 ? atoi(argv[1]) / 4 : 2; // # samples, spp = samples * 4 (4 subpixel per pixel)
+	int samps = argc == 2 ? atoi(argv[1]) / 4 : M_SAMPLES; // # samples, spp = samples * 4 (4 subpixel per pixel)
 	Ray cam(Vec(50, 52, 295.6), Vec(0, -0.042612, -1).norm()); // cam pos, dir
 	Vec cx = Vec(w*.5135 / h);
 	Vec cy = (cx%cam.d).norm()*.5135;
 	Vec r;
 	Vec *c = new Vec[w*h];
+
 #pragma omp parallel for schedule(dynamic, 1) private(r)       // OpenMP
 	for (int y = 0; y < h; y++)
 	{                       // Loop over image rows
 		fprintf(stderr, "\rRendering (%d spp) %5.2f%%", samps * 4, 100.*y / (h - 1));
 		unsigned short Xi[3] = { 0,0,y*y*y }; // MILO
+
 		for (unsigned short x = 0; x < w; x++)   // Loop cols
+		{
 			for (int sy = 0, i = (h - y - 1)*w + x; sy < 2; sy++)     // 2x2 subpixel rows
+			{
 				for (int sx = 0; sx < 2; sx++, r = Vec())
 				{        // 2x2 subpixel cols
 					for (int s = 0; s < samps; s++)
 					{
-						// tent filter
+						// tent filter, nonlinear mapping r1 ¡Ê [0,2] to dx ¡Ê [-1,1]
+						// to make sure sample points distribute denser on center£¬sparser on border
+						// why do this? to make the simulation more accurate even few sample times?
 						double r1 = 2 * erand48(Xi);
-						double dx = r1 < 1 ? sqrt(r1) - 1 : 1 - sqrt(2 - r1);
 						double r2 = 2 * erand48(Xi);
+
+						// seems no big difference
+#ifdef USE_TENT_FILTER
+						double dx = r1 < 1 ? sqrt(r1) - 1 : 1 - sqrt(2 - r1);
 						double dy = r2 < 1 ? sqrt(r2) - 1 : 1 - sqrt(2 - r2);
+#else
+						double dx = r1 - 1;
+						double dy = r2 - 1;
+#endif
+
 						Vec d = cx * (((sx + .5 + dx) / 2 + x) / w - .5) +
 							cy * (((sy + .5 + dy) / 2 + y) / h - .5) + cam.d;
+
 						r = r + radiance(Ray(cam.o + d * 140, d.norm()), 0, Xi)*(1. / samps);
 					} // Camera rays are pushed ^^^^^ forward to start in interior
+
 					c[i] = c[i] + Vec(clamp(r.x), clamp(r.y), clamp(r.z))*.25;
 				}
+			}
+		}
 	}
 	printf("\n%f sec\n", (float)(clock() - start) / CLOCKS_PER_SEC); // MILO
+
 	FILE *f = fopen("image.ppm", "w");         // Write image to PPM file.
+
 	fprintf(f, "P3\n%d %d\n%d\n", w, h, 255);
+
 	for (int i = 0; i < w*h; i++)
 		fprintf(f, "%d %d %d ", toInt(c[i].x), toInt(c[i].y), toInt(c[i].z));
+
 	getchar();
 }
