@@ -4,9 +4,33 @@
 #include <time.h>		// MILO
 #include "erand48.inc"	// MILO
 #include <iostream>
+
 #define M_PI 3.141592653589793238462643	// MILO
-#define M_SAMPLES 4
-#define USE_TENT_FILTER
+
+#define M_SAMPLES 4 // Karlex
+#define USE_TENT_FILTER // Karlex
+
+#define BYTE_RANGE 256
+
+// targa file header 
+typedef struct
+{
+	char id_length;
+	char map_type;
+	char image_type;
+	int map_first;
+	int map_length;
+	char map_entry_size;
+	int x;
+	int y;
+	int width;
+	int height;
+	char bits_per_pixel;
+	char misc;
+}targa_header;
+
+inline int remainder(int number) { return number % BYTE_RANGE; }
+inline int quotient(int number) { return number / BYTE_RANGE; }
 
 struct Vec
 {        // Usage: time ./smallpt 5000 && xv image.ppm
@@ -129,6 +153,75 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
 		radiance(reflRay, depth, Xi)*Re + radiance(Ray(x, tdir), depth, Xi)*Tr);
 }
 
+// write targa file header
+void write_header(targa_header header, FILE *tga)
+{
+	fputc(header.id_length, tga);
+	fputc(header.map_type, tga);
+	fputc(header.image_type, tga);
+
+	fputc(remainder(header.map_first), tga);
+	fputc(quotient(header.map_first), tga);
+
+	fputc(remainder(header.map_length), tga);
+	fputc(quotient(header.map_length), tga);
+
+	fputc(header.map_entry_size, tga);
+
+	fputc(remainder(header.x), tga);
+	fputc(quotient(header.x), tga);
+	fputc(remainder(header.y), tga);
+	fputc(quotient(header.y), tga);
+
+	fputc(remainder(header.width), tga);
+	fputc(quotient(header.width), tga);
+	fputc(remainder(header.height), tga);
+	fputc(quotient(header.height), tga);
+
+	fputc(header.bits_per_pixel, tga);
+	fputc(header.misc, tga);
+}
+
+// write targa file
+void write_tga(Vec *color, int width, int height)
+{
+	FILE *tga;
+	targa_header header;
+
+	int x, y;
+
+	header.id_length = 0;
+	header.map_type = 0;
+	header.image_type = 2;
+
+	header.map_first = 0;
+	header.map_length = 0;
+	header.map_entry_size = 0;
+
+	header.x = 0;
+	header.y = 0;
+	header.width = width;
+	header.height = height;
+
+	header.bits_per_pixel = 24;
+	header.misc = 0;
+
+	tga = fopen("image.tga", "wb");
+	write_header(header, tga);
+
+	for (y = 0; y < height; y++)
+		for (x = 0; x < width; x++)
+		{
+			// B G R order
+			int i = (height - y - 1) * width + x;
+			fputc(toInt(color[i].z), tga);
+			fputc(toInt(color[i].y), tga);
+			fputc(toInt(color[i].x), tga);
+		}
+
+	fclose(tga);
+}
+
 int main(int argc, char *argv[])
 {
 	clock_t start = clock(); // MILO
@@ -182,12 +275,14 @@ int main(int argc, char *argv[])
 	}
 	printf("\n%f sec\n", (float)(clock() - start) / CLOCKS_PER_SEC); // MILO
 
-	FILE *f = fopen("image.ppm", "w");         // Write image to PPM file.
+// 	FILE *f = fopen("image.ppm", "w");         // Write image to PPM file.
+// 
+// 	fprintf(f, "P3\n%d %d\n%d\n", w, h, 255);
+// 
+// 	for (int i = 0; i < w*h; i++)
+// 		fprintf(f, "%d %d %d ", toInt(c[i].x), toInt(c[i].y), toInt(c[i].z));
 
-	fprintf(f, "P3\n%d %d\n%d\n", w, h, 255);
-
-	for (int i = 0; i < w*h; i++)
-		fprintf(f, "%d %d %d ", toInt(c[i].x), toInt(c[i].y), toInt(c[i].z));
+	write_tga(c, w, h);
 
 	getchar();
 }
