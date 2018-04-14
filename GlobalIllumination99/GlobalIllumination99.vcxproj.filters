@@ -23,8 +23,10 @@
     <None Include="erand48.inc">
       <Filter>Header Files</Filter>
     </None>
-    <None Include="image.ppm">
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="image.tga">
       <Filter>Resource Files</Filter>
-    </None>
+    </Image>
   </ItemGroup>
 </Project>
