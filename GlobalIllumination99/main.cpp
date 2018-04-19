@@ -118,19 +118,21 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
 	Vec nl = n.dot(r.d) < 0 ? n : n * -1;	// radiance normal (outside normal or inside normal)
 	Vec f = obj.c;							// sphere color
 	double p = f.x > f.y && f.x > f.z ? f.x : f.y > f.z ? f.y : f.z; // max refl
+
+	// Don¡¯t do Russian Roulette until after depth 5
 	if (++depth > 5)
 	{
 		if (erand48(Xi) < p)
-			f = f * (1 / p);
+			f = f * (1 / p); // enlarge p to 1, lighten the color
 		else return obj.e; //R.R.
 	}
 
 	if (depth > 100) return obj.e; // MILO
 	if (obj.refl == DIFF)  // Ideal DIFFUSE reflection
 	{                 
-		double r1 = 2 * M_PI * erand48(Xi);
-		double r2 = erand48(Xi);
-		double r2s = sqrt(r2);
+		double r1 = 2 * M_PI * erand48(Xi); // angle around
+		double r2 = erand48(Xi); 
+		double r2s = sqrt(r2); // distance from center
 		Vec w = nl;
 		Vec u = ((fabs(w.x) > .1 ? Vec(0, 1) : Vec(1)) % w).norm();
 		Vec v = w % u;
