@@ -128,6 +128,7 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
 	}
 
 	if (depth > 100) return obj.e; // MILO
+
 	if (obj.refl == DIFF)  // Ideal DIFFUSE reflection
 	{                 
 		double r1 = 2 * M_PI * erand48(Xi); // angle around
@@ -136,7 +137,7 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
 		Vec w = nl;
 		Vec u = ((fabs(w.x) > .1 ? Vec(0, 1) : Vec(1)) % w).norm();
 		Vec v = w % u;
-		Vec d = (u*cos(r1)*r2s + v * sin(r1)*r2s + w * sqrt(1 - r2)).norm();
+		Vec d = (u*cos(r1)*r2s + v * sin(r1)*r2s + w * sqrt(1 - r2)).norm(); // {u, v, w} rotate matrix;
 		return obj.e + f.mult(radiance(Ray(x, d), depth, Xi));
 	}
 	else if (obj.refl == SPEC)            // Ideal SPECULAR reflection

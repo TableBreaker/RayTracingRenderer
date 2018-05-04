@@ -31,6 +31,8 @@
 *.out
 *.app
 .vs/
-GlobalIllumination99/x64/Debug/
+RayTracingRenderer/x64/Debug/
 x64/Debug/
-GlobalIllumination99/GlobalIllumination99.vcxproj.user
+RayTracingRenderer/RayTracingRenderer.vcxproj.user
+RayTracingRenderer/Debug/
+Debug/
