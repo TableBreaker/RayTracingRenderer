@@ -287,5 +287,5 @@ int main(int argc, char *argv[])
 
 	write_tga(c, w, h);
 
-	getchar();
+	system("pause"); // system("read")
 }
