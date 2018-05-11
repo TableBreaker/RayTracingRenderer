@@ -7,7 +7,7 @@
 
 #define M_PI 3.141592653589793238462643	// MILO
 
-#define M_SAMPLES 4 // Karlex
+#define M_SAMPLES 25000 // Karlex
 #define USE_TENT_FILTER // Karlex
 
 #define BYTE_RANGE 256
@@ -78,12 +78,12 @@ struct Sphere
 //Scene: radius, position, emission, color, material
 Sphere spheres[] =
 {
-	Sphere(1e5, Vec(1e5 + 1,40.8,81.6), Vec(),Vec(.75,.25,.25),DIFF),//Left
-	Sphere(1e5, Vec(-1e5 + 99,40.8,81.6),Vec(),Vec(.25,.25,.75),DIFF),//Rght
-	Sphere(1e5, Vec(50,40.8, 1e5),     Vec(),Vec(.75,.75,.75),DIFF),//Back
+	Sphere(1e5, Vec(1e5 + 1,40.8,81.6), Vec(),Vec(0.75, 0.25, 0.25),DIFF),//Left
+	Sphere(1e5, Vec(-1e5 + 99,40.8,81.6),Vec(),Vec(0.25, 0.25, 0.75),DIFF),//Rght
+	Sphere(1e5, Vec(50,40.8, 1e5),     Vec(),Vec(0.75, 0.75, 0.75),DIFF),//Back
 	Sphere(1e5, Vec(50,40.8,-1e5 + 170), Vec(),Vec(),           DIFF),//Frnt
-	Sphere(1e5, Vec(50, 1e5, 81.6),    Vec(),Vec(.75,.75,.75),DIFF),//Botm
-	Sphere(1e5, Vec(50,-1e5 + 81.6,81.6),Vec(),Vec(.75,.75,.75),DIFF),//Top
+	Sphere(1e5, Vec(50, 1e5, 81.6),    Vec(),Vec(0.75, 0.75, 0.75),DIFF),//Botm
+	Sphere(1e5, Vec(50,-1e5 + 81.6,81.6),Vec(),Vec(0.75, 0.75, 0.75),DIFF),//Top
 	Sphere(16.5,Vec(27,16.5,47),       Vec(),Vec(1,1,1)*.999, SPEC),//Mirr
 	Sphere(16.5,Vec(73,16.5,78),       Vec(),Vec(1,1,1)*.999, REFR),//Glas
 	Sphere(600, Vec(50,681.6 - .27,81.6),Vec(12,12,12),  Vec(), DIFF) //Lite
@@ -145,9 +145,16 @@ Vec radiance(const Ray &r, int depth, unsigned short *Xi)
 
 	Ray reflRay(x, r.d - n * 2 * n.dot(r.d));     // Ideal dielectric REFRACTION
 	bool into = n.dot(nl) > 0;                // Ray from outside going in?
-	double nc = 1, nt = 1.5, nnt = into ? nc / nt : nt / nc, ddn = r.d.dot(nl), cos2t;
+
+	double nc = 1;								// Air refractive index
+	double nt = 1.5;							// Glass refractive index
+	double nnt = into ? nc / nt : nt / nc;		// Ratio of refractive index
+	double ddn = r.d.dot(nl);
+	double cos2t;
+
 	if ((cos2t = 1 - nnt * nnt*(1 - ddn * ddn)) < 0)    // Total internal reflection
 		return obj.e + f.mult(radiance(reflRay, depth, Xi));
+
 	Vec tdir = (r.d*nnt - n * ((into ? 1 : -1)*(ddn*nnt + sqrt(cos2t)))).norm();
 	double a = nt - nc, b = nt + nc, R0 = a * a / (b*b), c = 1 - (into ? -ddn : tdir.dot(n));
 	double Re = R0 + (1 - R0)*c*c*c*c*c, Tr = 1 - Re, P = .25 + .5*Re, RP = Re / P, TP = Tr / (1 - P);
